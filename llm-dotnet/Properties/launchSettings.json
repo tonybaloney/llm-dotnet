@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "llm-dotnet": {
+      "commandName": "Project",
+      "commandLineArgs": "-m openrouter/microsoft/phi-4 -p \"1 Fun fact about cheese\"",
+      "environmentVariables": {
+        "OPENAI_API_KEY": "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",
+        "ANTHROPIC_API_KEY": "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",
+        "OPENROUTER_KEY": "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",
+        "LLM_OPENROUTER_KEY": "foo"
+      }
+    }
+  }
+}

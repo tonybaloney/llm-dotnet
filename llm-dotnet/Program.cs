@@ -2,14 +2,12 @@
 using CSnakes.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Spectre.Console;
 
 class Options
 {
-    [Option('m', "model", Required = true, HelpText = "The model to use")]
+    [Option('m', "model", Required = true, HelpText = "The default model to use")]
     public string Model { get; set; }
-
-    [Option('p', "prompt", Required = true, HelpText = "The prompt to use")]
-    public string Prompt { get; set; }
 }
 
 namespace llm_dotnet
@@ -30,7 +28,7 @@ namespace llm_dotnet
                         .WithPython()
                         .WithHome(home)
                         .WithVirtualEnvironment(Path.Join(home, "env"))
-                        .WithPipInstaller()
+                        .WithUvInstaller()
                         .FromRedistributable(); // Download Python 3.12 and store it locally
                     });
                 var app = builder.Build();
@@ -38,13 +36,43 @@ namespace llm_dotnet
                 var env = app.Services.GetRequiredService<IPythonEnvironment>();
                 var mod = env.LlmWrapper();
 
-                Console.WriteLine("Available models:");
+
+                // Display available models
+                AnsiConsole.MarkupLine("[bold]Available models:[/]");
                 foreach (string model in mod.GetModels())
                 {
-                    Console.WriteLine(model);
+                    AnsiConsole.MarkupLine($"- {model}");
                 }
-                Console.WriteLine($"You asked model: {opts.Model} '{opts.Prompt}'");
-                Console.Write(mod.Prompt(opts.Model, opts.Prompt));
+                AnsiConsole.MarkupLine("Use [blue]\"model <name>\"[/] to change the model");
+
+                // Enter REPL loop
+                while (true)
+                {
+                    // Read user input using Spectre.Console
+                    var userPrompt = AnsiConsole.Ask<string>("[green]Prompt:[/]");
+
+                    if (userPrompt == "exit")
+                    {
+                        break;
+                    }
+                    else if (userPrompt.StartsWith("model "))
+                    {
+                        opts.Model = userPrompt.Substring(6);
+                        AnsiConsole.MarkupLine($"[bold]Model changed to {opts.Model}[/]");
+                        continue;
+                    }
+
+                    // Display the response from the model
+                    try
+                    {
+                        var response = mod.Prompt(opts.Model, userPrompt);
+                        AnsiConsole.MarkupLine($"{opts.Model} : [blue]{response}[/]");
+                    }
+                    catch (Exception ex)
+                    {
+                        AnsiConsole.MarkupLine($"[red]Error: {ex.Message}[/]");
+                    }
+                }
             });
         }
     }

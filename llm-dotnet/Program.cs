@@ -8,6 +8,9 @@ class Options
 {
     [Option('m', "model", Required = true, HelpText = "The default model to use")]
     public string Model { get; set; }
+
+    [Option("api-key", Required = false, HelpText = "The API key to use for the model")]
+    public string? ApiKey { get; set; }
 }
 
 namespace llm_dotnet
@@ -36,15 +39,18 @@ namespace llm_dotnet
                 var env = app.Services.GetRequiredService<IPythonEnvironment>();
                 var mod = env.LlmWrapper();
 
+                // Display a fancy welcome message
+                AnsiConsole.MarkupLine("[bold]Welcome to the LLM REPL![/]");
 
-                // Display available models
-                AnsiConsole.MarkupLine("[bold]Available models:[/]");
-                foreach (string model in mod.GetModels())
+                if (!string.IsNullOrEmpty(opts.ApiKey))
                 {
-                    AnsiConsole.MarkupLine($"- {model}");
+                    mod.SetApiKey(opts.Model, opts.ApiKey);
                 }
-                AnsiConsole.MarkupLine("Use [blue]\"model <name>\"[/] to change the model");
 
+                AnsiConsole.MarkupLine("Type [blue]\"models\"[/] to list available models.");
+                AnsiConsole.MarkupLine("Type [blue]\"model <name>\"[/] to change the model.");
+                AnsiConsole.MarkupLine("Type [blue]\"key <key>\"[/] to change the API key.");
+                AnsiConsole.MarkupLine("Type [blue]\"exit\"[/] to exit the REPL.");
                 // Enter REPL loop
                 while (true)
                 {
@@ -55,10 +61,32 @@ namespace llm_dotnet
                     {
                         break;
                     }
+                    else if (userPrompt == "models")
+                    {
+                        AnsiConsole.MarkupLine("[bold]Available models:[/]");
+                        // They are unsorted, so sort them first otherwise it's really hard to read
+                        var models = mod.GetModels().ToList();
+                        models.Sort();
+                        foreach (string model in models)
+                        {
+                            AnsiConsole.MarkupLine($"- {model}");
+                        }
+                        continue;
+                    }
                     else if (userPrompt.StartsWith("model "))
                     {
                         opts.Model = userPrompt.Substring(6);
+                        if (!string.IsNullOrEmpty(opts.ApiKey))
+                            mod.SetApiKey(opts.Model, opts.ApiKey);
                         AnsiConsole.MarkupLine($"[bold]Model changed to {opts.Model}[/]");
+                        continue;
+                    }
+                    else if (userPrompt.StartsWith("key "))
+                    {
+                        opts.ApiKey = userPrompt.Substring(4);
+                        if (!string.IsNullOrEmpty(opts.ApiKey))
+                            mod.SetApiKey(opts.Model, opts.ApiKey);
+                        AnsiConsole.MarkupLine($"[bold]API key updated[/]");
                         continue;
                     }
 
@@ -67,6 +95,10 @@ namespace llm_dotnet
                     {
                         var response = mod.Prompt(opts.Model, userPrompt);
                         AnsiConsole.MarkupLine($"{opts.Model} : [blue]{response}[/]");
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        AnsiConsole.MarkupLine($"[red]Error: {ex.InnerException!.Message}[/]");
                     }
                     catch (Exception ex)
                     {

@@ -6,8 +6,8 @@ using Spectre.Console;
 
 class Options
 {
-    [Option('m', "model", Required = true, HelpText = "The default model to use")]
-    public string Model { get; set; }
+    [Option('m', "model", Required = false, HelpText = "The default model to use")]
+    public string? Model { get; set; }
 
     [Option("api-key", Required = false, HelpText = "The API key to use for the model")]
     public string? ApiKey { get; set; }
@@ -42,7 +42,7 @@ namespace llm_dotnet
                 // Display a fancy welcome message
                 AnsiConsole.MarkupLine("[bold]Welcome to the LLM REPL![/]");
 
-                if (!string.IsNullOrEmpty(opts.ApiKey))
+                if (!string.IsNullOrEmpty(opts.ApiKey) && !string.IsNullOrEmpty(opts.Model))
                 {
                     mod.SetApiKey(opts.Model, opts.ApiKey);
                 }
@@ -84,7 +84,7 @@ namespace llm_dotnet
                     else if (userPrompt.StartsWith("key "))
                     {
                         opts.ApiKey = userPrompt.Substring(4);
-                        if (!string.IsNullOrEmpty(opts.ApiKey))
+                        if (!string.IsNullOrEmpty(opts.ApiKey) && !string.IsNullOrEmpty(opts.Model))
                             mod.SetApiKey(opts.Model, opts.ApiKey);
                         AnsiConsole.MarkupLine($"[bold]API key updated[/]");
                         continue;
@@ -93,11 +93,17 @@ namespace llm_dotnet
                     // Display the response from the model
                     try
                     {
+                        if (string.IsNullOrEmpty(opts.Model))
+                        {
+                            AnsiConsole.MarkupLine($"[red]Error: Type \"model <name>\" to specify a model first.[/]");
+                            continue;
+                        }
                         var response = mod.Prompt(opts.Model, userPrompt);
                         AnsiConsole.MarkupLine($"{opts.Model} : [blue]{response}[/]");
                     }
                     catch (PythonInvocationException ex)
                     {
+                        // Print the Python error as this normally contains more useful information
                         AnsiConsole.MarkupLine($"[red]Error: {ex.InnerException!.Message}[/]");
                     }
                     catch (Exception ex)

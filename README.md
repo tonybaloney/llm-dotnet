@@ -8,6 +8,8 @@ A tiny REPL to try prompting with different AI models using [llm](llm.datasette.
 
 Check the plugin documentation if you want to use API keys in environment variables.
 
+There is a `key` command but it doesn't work for all plugins.
+
 ## Adding extra models
 
 This app is bundled with openrouter. There are plugins for hundreds of different models, including ones which run on your machine.

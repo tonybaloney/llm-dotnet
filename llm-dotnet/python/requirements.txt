@@ -1,2 +1,2 @@
 ﻿llm
-llm-openrouter
+llm-github-models>=0.3
